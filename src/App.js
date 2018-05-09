@@ -54,7 +54,9 @@ class App extends Component {
             <input type="submit" value="Search"/>
           </form>
         </div>
-        <Venues venues={ this.state.venues } />
+        <div className="container venues">
+          <Venues venues={ this.state.venues } />
+        </div>
       </div>
     );
   }
