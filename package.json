@@ -6,7 +6,8 @@
     "react": "^16.3.2",
     "react-bootstrap": "^0.32.1",
     "react-dom": "^16.3.2",
-    "react-scripts": "1.1.4"
+    "react-scripts": "1.1.4",
+    "react-twitter-auth": "0.0.11"
   },
   "scripts": {
     "start": "react-scripts start",

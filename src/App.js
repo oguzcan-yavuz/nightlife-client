@@ -7,11 +7,16 @@ const API_URL = "http://127.0.0.1:8080";    // there must be a better practice!
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { location: "", venues: [] };
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    // this.authenticate = this.authenticate.bind(this);
+    this.state = { location: "", venues: [], user: undefined };
   }
 
+  authenticate(event) {
+    console.log("authenticating");
+    event.preventDefault();
+  };
 
   handleChange(event) {
     this.setState({ location: event.target.value });
@@ -78,9 +83,31 @@ class Venues extends React.Component {
 
 
 class Venue extends React.Component {
-  // constructor(props) {
-  //   super(props);
-  // }
+  constructor(props) {
+    super(props);
+    this.app = new App();
+    this.state = { goingPeople: props.venue.goingPeople };
+    this.handleClick = this.handleClick.bind(this);
+  }
+
+  handleClick(event) {
+    const url = API_URL + "/api/goingPeople";
+    const reqBody = { venueId: this.props.venue.id };
+    const options = {
+      method: 'POST',
+      body: JSON.stringify(reqBody),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include'
+    };
+    fetch(url, options)
+      .then(response => response.json())
+      .then(res => {
+        // this.setState({ venues: res.venues });
+        console.log("res:", res);
+      });
+  }
 
   render() {
     return (
@@ -88,12 +115,15 @@ class Venue extends React.Component {
         <Media.Left>
           <img src={ this.props.venue.image_url } alt={ this.props.venue.name } width="200" height="100"/>
         </Media.Left>
-        <Media.Right>
+        <Media.Body>
           <Media.Heading>
             <a href={ this.props.venue.url } target="_blank">{ this.props.venue.name }</a>
           </Media.Heading>
           <p><strong>Rating: </strong>{ this.props.venue.rating }</p>
-        </Media.Right>
+          <button onClick={(this.props.user !== undefined) ? this.handleClick : this.app.authenticate }>
+            { `${ this.state.goingPeople } Going` }
+          </button>
+        </Media.Body>
       </Media>
     );
   }
