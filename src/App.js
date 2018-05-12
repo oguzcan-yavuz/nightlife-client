@@ -9,14 +9,48 @@ class App extends Component {
     super(props);
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    // this.authenticate = this.authenticate.bind(this);
-    this.state = { location: "", venues: [], user: undefined };
+    this.goingPeopleHandler = this.goingPeopleHandler.bind(this);
+    this.state = { location: "", venues: [] };
   }
 
-  authenticate(event) {
-    console.log("authenticating");
-    event.preventDefault();
+  isAuthenticated() {
+    return fetch(API_URL + "/isAuthenticated")
+      .then(response => response.json())
+      .then(res => res.isAuthenticated);
+  }
+
+  redirectToLogin() {
+    window.location = API_URL + '/auth/twitter';
   };
+
+  updateGoingPeople(venueId) {
+    const url = API_URL + "/api/goingPeople";
+    const reqBody = { venueId: venueId };
+    const options = {
+      method: 'POST',
+      body: JSON.stringify(reqBody),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include'
+    };
+    fetch(url, options)
+      .then(response => response.json())
+      .then(res => {
+        console.log("res:", res);
+        this.setState({ venues: res.venues });
+      });
+  }
+
+  async goingPeopleHandler(venueId) {
+    console.log(venueId);
+    let authed = await this.isAuthenticated();
+    console.log(authed);
+    if(authed)
+      this.updateGoingPeople(venueId);
+    else
+      this.redirectToLogin();
+  }
 
   handleChange(event) {
     this.setState({ location: event.target.value });
@@ -60,7 +94,7 @@ class App extends Component {
           </form>
         </div>
         <div className="container venues">
-          <Venues venues={ this.state.venues } />
+          <Venues venues={ this.state.venues } goingPeopleHandler={ this.goingPeopleHandler } />
         </div>
       </div>
     );
@@ -68,14 +102,12 @@ class App extends Component {
 }
 
 class Venues extends React.Component {
-  // constructor(props) {
-  //   super(props);
-  // }
-
   render() {
     return (
       <div>
-        { this.props.venues.map(venue => <Venue key={ venue.id } venue={ venue } />) }
+        { this.props.venues.map(venue =>
+          <Venue key={ venue.id } venue={ venue } goingPeopleHandler={ this.props.goingPeopleHandler } />)
+        }
       </div>
     )
   };
@@ -85,28 +117,7 @@ class Venues extends React.Component {
 class Venue extends React.Component {
   constructor(props) {
     super(props);
-    this.app = new App();
     this.state = { goingPeople: props.venue.goingPeople };
-    this.handleClick = this.handleClick.bind(this);
-  }
-
-  handleClick(event) {
-    const url = API_URL + "/api/goingPeople";
-    const reqBody = { venueId: this.props.venue.id };
-    const options = {
-      method: 'POST',
-      body: JSON.stringify(reqBody),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include'
-    };
-    fetch(url, options)
-      .then(response => response.json())
-      .then(res => {
-        // this.setState({ venues: res.venues });
-        console.log("res:", res);
-      });
   }
 
   render() {
@@ -120,7 +131,7 @@ class Venue extends React.Component {
             <a href={ this.props.venue.url } target="_blank">{ this.props.venue.name }</a>
           </Media.Heading>
           <p><strong>Rating: </strong>{ this.props.venue.rating }</p>
-          <button onClick={(this.props.user !== undefined) ? this.handleClick : this.app.authenticate }>
+          <button onClick={ () => this.props.goingPeopleHandler(this.props.venue.id) }>
             { `${ this.state.goingPeople } Going` }
           </button>
         </Media.Body>
