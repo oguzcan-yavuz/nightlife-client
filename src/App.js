@@ -114,6 +114,7 @@ class App extends Component {
                   isAuthed={ this.state.isAuthenticated }
                   user={ this.state.user }/>
         </div>
+        { Footer() }
       </div>
     );
   }
@@ -187,6 +188,17 @@ class Venue extends Component {
       </Media>
     );
   }
+}
+
+function Footer() {
+  return (
+    <footer>
+      <a href="https://www.freecodecamp.org/yavuzovski" target="_blank">@yavuzovski</a> |
+      <a href="https://www.freecodecamp.org/challenges/build-a-nightlife-coordination-app" target="_blank"> freecodecamp</a> |
+      <a href="https://github.com/yavuzovski/nightlife-client" target="_blank"> Front-End</a> |
+      <a href="https://github.com/yavuzovski/nightlife-server" target="_blank"> Back-End</a>
+    </footer>
+  )
 }
 
 export default App;
