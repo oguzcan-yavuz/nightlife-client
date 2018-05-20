@@ -20,7 +20,6 @@ class App extends Component {
     if(location !== this.state.location) {
       this.setState({ location: location });
       this.handleSubmit();
-      console.log("handleLocation:", location);
     }
   }
 
@@ -37,8 +36,6 @@ class App extends Component {
             user: { id: res.session.passport.user },
             token: res.session.token
           });
-        console.log("last session:", res);
-        console.log("state:", this.state);
       });
   }
 
@@ -60,7 +57,6 @@ class App extends Component {
       r.json().then(user => {
         if (token)
           this.setState({ isAuthenticated: true, user, token });
-        console.log(this.state);
       });
     });
   };
@@ -87,7 +83,6 @@ class App extends Component {
       .then(response => response.json())
       .then(res => {
         this.setState({ venues: res.venues });
-        console.log("state.venues:", this.state.venues);
       });
   }
 
@@ -144,7 +139,6 @@ class Venue extends Component {
   }
 
   updateGoingPeople(venueId) {
-    console.log("updating going people!");
     const url = API_URL + "/api/goingPeople";
     const reqBody = { venueId: venueId, userId: this.props.user.id };
     const options = {
@@ -158,7 +152,6 @@ class Venue extends Component {
     fetch(url, options)
       .then(response => response.json())
       .then(res => {
-        console.log("res:", res);
         this.setState({ goingPeople: res.goingPeopleCount });
       });
   }
@@ -193,10 +186,10 @@ class Venue extends Component {
 function Footer() {
   return (
     <footer>
-      <a href="https://www.freecodecamp.org/yavuzovski" target="_blank">@yavuzovski</a> |
-      <a href="https://www.freecodecamp.org/challenges/build-a-nightlife-coordination-app" target="_blank"> freecodecamp</a> |
-      <a href="https://github.com/yavuzovski/nightlife-client" target="_blank"> Front-End</a> |
-      <a href="https://github.com/yavuzovski/nightlife-server" target="_blank"> Back-End</a>
+      <a href="https://www.freecodecamp.org/yavuzovski" target="_blank" rel="noopener noreferrer">@yavuzovski</a> |
+      <a href="https://www.freecodecamp.org/challenges/build-a-nightlife-coordination-app" target="_blank" rel="noopener noreferrer"> freecodecamp</a> |
+      <a href="https://github.com/yavuzovski/nightlife-client" target="_blank" rel="noopener noreferrer"> Front-End</a> |
+      <a href="https://github.com/yavuzovski/nightlife-server" target="_blank" rel="noopener noreferrer"> Back-End</a>
     </footer>
   )
 }
