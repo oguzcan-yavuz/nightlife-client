@@ -1,56 +1,69 @@
 import React, { Component } from 'react';
+import { GoogleLogin } from 'react-google-login';
 import Media from 'react-bootstrap/lib/Media';
 import './App.css';
+import config from './config.json';
 
-const API_URL = "http://127.0.0.1:8080";    // there must be a better practice!
+const API_URL = config.API_URL;
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.goingPeopleHandler = this.goingPeopleHandler.bind(this);
-    this.state = { location: "", venues: [] };
+    this.googleResponse = this.googleResponse.bind(this);
+    this.onFailure = this.onFailure.bind(this);
+    this.state = { location: "", venues: [], isAuthenticated: false, user: null, token: '' };
   }
 
-  isAuthenticated() {
-    return fetch(API_URL + "/isAuthenticated")
-      .then(response => response.json())
-      .then(res => res.isAuthenticated);
+  handleLocation(location) {
+    if(location !== this.state.location) {
+      this.setState({ location: location });
+      this.handleSubmit();
+      console.log("handleLocation:", location);
+    }
   }
 
-  redirectToLogin() {
-    window.location = API_URL + '/auth/twitter';
-  };
-
-  updateGoingPeople(venueId) {
-    const url = API_URL + "/api/goingPeople";
-    const reqBody = { venueId: venueId };
+  componentDidMount() {
     const options = {
-      method: 'POST',
-      body: JSON.stringify(reqBody),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      method: 'GET',
       credentials: 'include'
     };
-    fetch(url, options)
-      .then(response => response.json())
+    fetch(API_URL + "/lastSession", options).then(response => response.json())
       .then(res => {
-        console.log("res:", res);
-        this.setState({ venues: res.venues });
+        this.handleLocation(res.session.location || "");
+        if(res.session.passport && res.session.token)
+          this.setState({ isAuthenticated: true,
+            user: { id: res.session.passport.user },
+            token: res.session.token
+          });
+        console.log("last session:", res);
+        console.log("state:", this.state);
       });
   }
 
-  async goingPeopleHandler(venueId) {
-    console.log(venueId);
-    let authed = await this.isAuthenticated();
-    console.log(authed);
-    if(authed)
-      this.updateGoingPeople(venueId);
-    else
-      this.redirectToLogin();
+  onFailure(error) {
+    alert(error);
   }
+
+  googleResponse(response) {
+    const tokenBlob = new Blob([JSON.stringify({ access_token: response.accessToken }, null, 2)], { type : 'application/json' });
+    const options = {
+      method: 'POST',
+      body: tokenBlob,
+      mode: 'cors',
+      cache: 'default',
+      credentials: 'include'
+    };
+    fetch(API_URL + '/auth/google', options).then(r => {
+      const token = r.headers.get('x-auth-token');
+      r.json().then(user => {
+        if (token)
+          this.setState({ isAuthenticated: true, user, token });
+        console.log(this.state);
+      });
+    });
+  };
 
   handleChange(event) {
     this.setState({ location: event.target.value });
@@ -58,6 +71,8 @@ class App extends Component {
 
   handleSubmit(event) {
     // get the state.location in here and send a get request to the server. render new component with response.
+    if(event)
+      event.preventDefault();
     const url = API_URL + "/api/search";
     const reqBody = { location: this.state.location };
     const options = {
@@ -72,9 +87,8 @@ class App extends Component {
       .then(response => response.json())
       .then(res => {
         this.setState({ venues: res.venues });
-        console.log("state:", this.state.venues);
+        console.log("state.venues:", this.state.venues);
       });
-    event.preventDefault();
   }
 
   render() {
@@ -94,19 +108,26 @@ class App extends Component {
           </form>
         </div>
         <div className="container venues">
-          <Venues venues={ this.state.venues } goingPeopleHandler={ this.goingPeopleHandler } />
+          <Venues venues={ this.state.venues }
+                  onSuccess={ this.googleResponse }
+                  onFailure={ this.onFailure }
+                  isAuthed={ this.state.isAuthenticated }
+                  user={ this.state.user }/>
         </div>
       </div>
     );
   }
 }
 
-class Venues extends React.Component {
+class Venues extends Component {
   render() {
     return (
       <div>
         { this.props.venues.map(venue =>
-          <Venue key={ venue.id } venue={ venue } goingPeopleHandler={ this.props.goingPeopleHandler } />)
+          <Venue key={ venue.id } venue={ venue }
+                 onSuccess={ this.props.onSuccess }
+                 onFailure={ this.props.onFailure }
+                 isAuthed={ this.props.isAuthed } user={ this.props.user }/>)
         }
       </div>
     )
@@ -114,10 +135,31 @@ class Venues extends React.Component {
 }
 
 
-class Venue extends React.Component {
+class Venue extends Component {
   constructor(props) {
     super(props);
+    this.updateGoingPeople = this.updateGoingPeople.bind(this);
     this.state = { goingPeople: props.venue.goingPeople };
+  }
+
+  updateGoingPeople(venueId) {
+    console.log("updating going people!");
+    const url = API_URL + "/api/goingPeople";
+    const reqBody = { venueId: venueId, userId: this.props.user.id };
+    const options = {
+      method: 'POST',
+      body: JSON.stringify(reqBody),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include'
+    };
+    fetch(url, options)
+      .then(response => response.json())
+      .then(res => {
+        console.log("res:", res);
+        this.setState({ goingPeople: res.goingPeopleCount });
+      });
   }
 
   render() {
@@ -131,9 +173,16 @@ class Venue extends React.Component {
             <a href={ this.props.venue.url } target="_blank">{ this.props.venue.name }</a>
           </Media.Heading>
           <p><strong>Rating: </strong>{ this.props.venue.rating }</p>
-          <button onClick={ () => this.props.goingPeopleHandler(this.props.venue.id) }>
-            { `${ this.state.goingPeople } Going` }
-          </button>
+          { (!!this.props.isAuthed) ? (
+            <button onClick={ () => this.updateGoingPeople(this.props.venue.id) }>
+              { `${ this.state.goingPeople } Going` }
+            </button>
+          ) : (
+            <GoogleLogin clientId={ config.GOOGLE_CLIENT_ID }
+                         buttonText={ `${ this.state.goingPeople } Going` }
+                         onSuccess={ this.props.onSuccess }
+                         onFailure={ this.props.onFailure }/>
+          ) }
         </Media.Body>
       </Media>
     );

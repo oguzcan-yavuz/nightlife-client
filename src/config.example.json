@@ -1,0 +1,4 @@
+{
+  "API_URL": "<API_SERVER_URL>",
+  "GOOGLE_CLIENT_ID": "<GOOGLE_OAUTH_KEY>"
+}
